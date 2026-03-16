@@ -1,8 +1,8 @@
 {
   "name": "Fair Value Calculator",
   "build": {
-    "dockerfile": "Dockerfile",
-    "context": "."
+    "dockerfile": "../Dockerfile",
+    "context": ".."
   },
   "remoteUser": "node",
   "features": {
