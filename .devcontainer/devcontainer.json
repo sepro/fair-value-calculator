@@ -9,6 +9,12 @@
     "ghcr.io/devcontainers/features/git:1": {}
   },
   "forwardPorts": [5173],
+  "portsAttributes": {
+    "5173": {
+      "label": "Vite dev server",
+      "onAutoForward": "openBrowser"
+    }
+  },
   "postCreateCommand": "npm install",
   "customizations": {
     "vscode": {
@@ -17,5 +23,12 @@
         "esbenp.prettier-vscode"
       ]
     }
-  }
+  },
+  "appPort": [
+    "5173:5173"
+  ],
+  "runArgs": [
+    "-p",
+    "5173:5173"
+  ]
 }

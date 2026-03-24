@@ -16,3 +16,5 @@ RUN echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/$USERNAME
 
 USER $USERNAME
 WORKDIR /workspace
+
+EXPOSE 5173
