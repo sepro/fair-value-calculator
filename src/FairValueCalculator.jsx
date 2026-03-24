@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 
 // ─── Projection math ────────────────────────────────────────────────────────
 // Projects EPS forward at a constant growth rate, then applies the target
@@ -111,7 +111,34 @@ function PriceChart({ projections, currentPrice }) {
 
 // ─── Reusable numeric input with label ──────────────────────────────────────
 
-function NumericInput({ label, helpText, value, onChange, prefix, suffix, step = 1, min, max }) {
+function NumericInput({ label, helpText, value, onChange, prefix, suffix }) {
+  const inputRef = useRef(null);
+  const lastValueRef = useRef(value);
+
+  // Only sync the DOM value when `value` changes from outside (not from our own onChange)
+  useEffect(() => {
+    if (inputRef.current && lastValueRef.current !== value) {
+      inputRef.current.value = String(value);
+      lastValueRef.current = value;
+    }
+  }, [value]);
+
+  const handleChange = (e) => {
+    const str = e.target.value;
+    const parsed = parseFloat(str);
+    if (!isNaN(parsed)) {
+      lastValueRef.current = parsed; // mark as our own update before triggering re-render
+      onChange(parsed);
+    }
+  };
+
+  const handleBlur = () => {
+    if (inputRef.current) {
+      inputRef.current.value = String(value);
+      lastValueRef.current = value;
+    }
+  };
+
   return (
     <div style={{ marginBottom: 20 }}>
       <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#cbd5e1", marginBottom: 6, fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.02em" }}>
@@ -122,12 +149,12 @@ function NumericInput({ label, helpText, value, onChange, prefix, suffix, step =
           <span style={{ padding: "10px 0 10px 14px", color: "#475569", fontSize: 15, fontFamily: "'DM Mono', monospace", userSelect: "none" }}>{prefix}</span>
         )}
         <input
-          type="number"
-          value={value}
-          step={step}
-          min={min}
-          max={max}
-          onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+          ref={inputRef}
+          type="text"
+          inputMode="decimal"
+          defaultValue={String(value)}
+          onChange={handleChange}
+          onBlur={handleBlur}
           style={{
             flex: 1,
             background: "transparent",
@@ -139,7 +166,6 @@ function NumericInput({ label, helpText, value, onChange, prefix, suffix, step =
             padding: "10px 12px",
             fontFamily: "'DM Mono', monospace",
             width: "100%",
-            MozAppearance: "textfield",
           }}
         />
         {suffix && (
@@ -232,7 +258,7 @@ export default function FairValueCalculator() {
     [eps, growthRate, peMultiple, desiredReturn, currentPrice]
   );
 
-  const formatDollar = (v) => `$${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const formatDollar = (v) => `$${v.toFixed(2)}`;
   const formatPct = (v) => `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`;
 
   const copyPrompt = useCallback(() => {
@@ -271,12 +297,8 @@ export default function FairValueCalculator() {
       fontFamily: "'DM Sans', sans-serif",
       padding: "24px 16px",
     }}>
-      {/* Hide number input spinners */}
       <style>{`
-        input[type=number]::-webkit-inner-spin-button,
-        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        input[type=number] { -moz-appearance: textfield; }
-        input[type=number]:focus { outline: none; }
+        input:focus { outline: none; }
         div:has(> input:focus) { border-color: #334155 !important; }
       `}</style>
 
