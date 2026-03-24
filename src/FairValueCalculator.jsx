@@ -208,6 +208,15 @@ function MetricCard({ label, value, sub, accent }) {
 
 // ─── Main App ───────────────────────────────────────────────────────────────
 
+const PROMPT_TEXT = `Look up the current financials for COMPANY/TICKER SYMBOL and give me the values I need for my fair value calculator:
+1. Current stock price
+2. EPS (TTM, diluted) — if GAAP EPS is distorted by one-off items, provide the adjusted/non-GAAP figure and flag it
+3. PE ratio (TTM) and how it compares to its 5- and 10-year historical average
+4. EPS growth rate — both recent historical (3–5 year) and forward analyst consensus
+5. Analyst consensus — rating, average price target, and implied upside
+Then suggest default values for my calculator in a table with these columns: Current Price, EPS (TTM), EPS Growth Rate (%), Fair PE Multiple, Desired Return (15%). Include a brief rationale for each.
+Finish with a short qualitative analysis (3–5 sentences) covering the key bull case, bear case, and what makes this stock interesting or risky right now.`;
+
 export default function FairValueCalculator() {
   const [eps, setEps] = useState(18.67);
   const [currentPrice, setCurrentPrice] = useState(1008.0);
@@ -215,6 +224,8 @@ export default function FairValueCalculator() {
   const [peMultiple, setPeMultiple] = useState(45);
   const [desiredReturn, setDesiredReturn] = useState(15);
   const years = 5;
+  const [showPrompt, setShowPrompt] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const results = useMemo(
     () => projectFairValue({ eps, growthRate, peMultiple, desiredReturn, years, currentPrice }),
@@ -223,6 +234,13 @@ export default function FairValueCalculator() {
 
   const formatDollar = (v) => `$${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const formatPct = (v) => `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`;
+
+  const copyPrompt = useCallback(() => {
+    navigator.clipboard.writeText(PROMPT_TEXT).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, []);
 
   // Serialise the chart SVG to a file and trigger a browser download
   const downloadChartAsSvg = useCallback(() => {
@@ -263,11 +281,121 @@ export default function FairValueCalculator() {
       `}</style>
 
       <div style={{ maxWidth: 960, margin: "0 auto" }}>
+        {/* Prompt Modal */}
+        {showPrompt && (
+          <div
+            onClick={() => setShowPrompt(false)}
+            style={{
+              position: "fixed", inset: 0, zIndex: 50,
+              background: "rgba(2,6,23,0.85)", backdropFilter: "blur(4px)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              padding: "24px 16px",
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: "#0b1120", border: "1px solid #1e293b", borderRadius: 14,
+                padding: "28px 28px 24px", maxWidth: 640, width: "100%",
+                display: "flex", flexDirection: "column", gap: 16,
+              }}
+            >
+              {/* Modal header */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em", color: "#64748b", fontWeight: 700 }}>
+                  AI Research Prompt
+                </div>
+                <button
+                  onClick={() => setShowPrompt(false)}
+                  style={{
+                    background: "transparent", border: "none", cursor: "pointer",
+                    color: "#475569", padding: 4, display: "flex", alignItems: "center",
+                    borderRadius: 4, transition: "color 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "#94a3b8"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "#475569"; }}
+                  aria-label="Close"
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M3 3l10 10M13 3L3 13" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Prompt text */}
+              <div style={{ position: "relative" }}>
+                <pre style={{
+                  margin: 0, padding: "16px 48px 16px 16px",
+                  background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8,
+                  color: "#cbd5e1", fontSize: 13, fontFamily: "'DM Sans', sans-serif",
+                  lineHeight: 1.7, whiteSpace: "pre-wrap", wordBreak: "break-word",
+                }}>
+                  {PROMPT_TEXT}
+                </pre>
+                {/* Copy icon button */}
+                <button
+                  onClick={copyPrompt}
+                  title={copied ? "Copied!" : "Copy to clipboard"}
+                  style={{
+                    position: "absolute", top: 10, right: 10,
+                    background: copied ? "rgba(16,185,129,0.15)" : "transparent",
+                    border: `1px solid ${copied ? "#10b981" : "#1e293b"}`,
+                    borderRadius: 6, padding: "5px 7px", cursor: "pointer",
+                    color: copied ? "#10b981" : "#64748b",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => { if (!copied) { e.currentTarget.style.borderColor = "#334155"; e.currentTarget.style.color = "#94a3b8"; } }}
+                  onMouseLeave={(e) => { if (!copied) { e.currentTarget.style.borderColor = "#1e293b"; e.currentTarget.style.color = "#64748b"; } }}
+                >
+                  {copied ? (
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M2 7l4 4 6-6" />
+                    </svg>
+                  ) : (
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="5" y="5" width="8" height="8" rx="1.5" />
+                      <path d="M9 5V3a1.5 1.5 0 0 0-1.5-1.5H3A1.5 1.5 0 0 0 1.5 3v4.5A1.5 1.5 0 0 0 3 9h2" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+
+              {/* Footer hint */}
+              <p style={{ margin: 0, fontSize: 11.5, color: "#475569", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5 }}>
+                Paste this into an AI assistant (e.g. ChatGPT, Claude) replacing <span style={{ color: "#94a3b8", fontFamily: "'DM Mono', monospace" }}>COMPANY/TICKER SYMBOL</span> with the stock you want to research.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div style={{ marginBottom: 32 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-            <div style={{ width: 3, height: 28, background: "#10b981", borderRadius: 2 }} />
-            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, letterSpacing: "-0.02em" }}>Fair Value Calculator</h1>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 3, height: 28, background: "#10b981", borderRadius: 2 }} />
+              <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, letterSpacing: "-0.02em" }}>Fair Value Calculator</h1>
+            </div>
+            <button
+              onClick={() => setShowPrompt(true)}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 7,
+                background: "transparent", border: "1px solid #1e293b",
+                borderRadius: 8, padding: "7px 14px", cursor: "pointer",
+                color: "#94a3b8", fontSize: 12, fontFamily: "'DM Sans', sans-serif",
+                fontWeight: 600, letterSpacing: "0.02em",
+                transition: "all 0.15s ease",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#10b981"; e.currentTarget.style.color = "#10b981"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#1e293b"; e.currentTarget.style.color = "#94a3b8"; }}
+            >
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="6.5" cy="5" r="3.5" />
+                <path d="M6.5 8.5v1M4 11.5h5" />
+                <path d="M5 4.5c0-.8.7-1.5 1.5-1.5S8 3.7 8 4.5c0 .6-.4 1.1-1 1.3-.4.2-.5.5-.5.7" />
+              </svg>
+              Show Prompt
+            </button>
           </div>
           <p style={{ margin: 0, fontSize: 13, color: "#475569", paddingLeft: 13 }}>
             Project 5-year earnings growth to estimate intrinsic value and find your ideal entry price.
