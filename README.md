@@ -59,14 +59,13 @@ Then set **Source** to **Deploy from a branch** → `gh-pages` / `/ (root)`.
 
 ## Configuration
 
-If your repository name is different from `fair-value-calculator`, update the `base` path in `vite.config.js`:
+If your repository name is different from `fair-value-calculator`, update the `repoBasePath` variable in `vite.config.js`:
 
 ```js
-export default defineConfig({
-  plugins: [react()],
-  base: "/<your-repo-name>/",
-});
+const repoBasePath = "/<your-repo-name>/";
 ```
+
+The config automatically uses this path when building for production and `/` when running locally, so no other changes are needed.
 
 ## License
 
