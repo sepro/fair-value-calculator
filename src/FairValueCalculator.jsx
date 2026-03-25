@@ -1,5 +1,28 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 
+const MOBILE_BREAKPOINT = 720; // px — change this to adjust when mobile layout activates
+
+function useIsMobile(breakpoint = MOBILE_BREAKPOINT) {
+  const query = `(max-width: ${breakpoint - 1}px)`;
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia(query).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    // Re-read mq.matches rather than trusting the event payload so both
+    // handlers stay consistent regardless of which one fires.
+    const check = () => setIsMobile(mq.matches);
+    // matchMedia "change" covers normal browser resizing.
+    mq.addEventListener("change", check);
+    // "resize" is a fallback for Chrome DevTools device emulation, which
+    // resizes the viewport but does not reliably fire matchMedia change events.
+    window.addEventListener("resize", check);
+    return () => {
+      mq.removeEventListener("change", check);
+      window.removeEventListener("resize", check);
+    };
+  }, [query]);
+  return isMobile;
+}
+
 // ─── Projection math ────────────────────────────────────────────────────────
 // Projects EPS forward at a constant growth rate, then applies the target
 // PE multiple to get a future "fair" price. Works backwards from there to
@@ -252,6 +275,7 @@ export default function FairValueCalculator() {
   const years = 5;
   const [showPrompt, setShowPrompt] = useState(false);
   const [copied, setCopied] = useState(false);
+  const isMobile = useIsMobile();
 
   const results = useMemo(
     () => projectFairValue({ eps, growthRate, peMultiple, desiredReturn, years, currentPrice }),
@@ -295,7 +319,7 @@ export default function FairValueCalculator() {
       background: "#020617",
       color: "#f1f5f9",
       fontFamily: "'DM Sans', sans-serif",
-      padding: "24px 16px",
+      padding: isMobile ? "16px 12px" : "24px 16px",
     }}>
       <style>{`
         input:focus { outline: none; }
@@ -318,7 +342,7 @@ export default function FairValueCalculator() {
               onClick={(e) => e.stopPropagation()}
               style={{
                 background: "#0b1120", border: "1px solid #1e293b", borderRadius: 14,
-                padding: "28px 28px 24px", maxWidth: 640, width: "100%",
+                padding: isMobile ? "20px 16px 16px" : "28px 28px 24px", maxWidth: 640, width: "100%",
                 display: "flex", flexDirection: "column", gap: 16,
               }}
             >
@@ -392,11 +416,11 @@ export default function FairValueCalculator() {
         )}
 
         {/* Header */}
-        <div style={{ marginBottom: 32 }}>
+        <div style={{ marginBottom: isMobile ? 20 : 32 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 6 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{ width: 3, height: 28, background: "#10b981", borderRadius: 2 }} />
-              <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, letterSpacing: "-0.02em" }}>Fair Value Calculator</h1>
+              <h1 style={{ margin: 0, fontSize: isMobile ? 20 : 26, fontWeight: 700, letterSpacing: "-0.02em" }}>Fair Value Calculator</h1>
             </div>
             <button
               onClick={() => setShowPrompt(true)}
@@ -424,7 +448,7 @@ export default function FairValueCalculator() {
           </p>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(280px, 360px) 1fr", gap: 28, alignItems: "start" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(280px, 360px) 1fr", gap: isMobile ? 16 : 28, alignItems: "start" }}>
           {/* Left: Inputs */}
           <div style={{ background: "#0b1120", borderRadius: 14, border: "1px solid #1e293b", padding: "24px 22px" }}>
             <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em", color: "#64748b", fontWeight: 700, marginBottom: 20 }}>
@@ -490,7 +514,7 @@ export default function FairValueCalculator() {
           {/* Right: Results */}
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             {/* Verdict + key metrics row */}
-            <div style={{ background: "#0b1120", borderRadius: 14, border: "1px solid #1e293b", padding: "22px 24px" }}>
+            <div style={{ background: "#0b1120", borderRadius: 14, border: "1px solid #1e293b", padding: isMobile ? "16px" : "22px 24px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
                 <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em", color: "#64748b", fontWeight: 700 }}>
                   Calculation Results
@@ -520,7 +544,7 @@ export default function FairValueCalculator() {
             </div>
 
             {/* Chart */}
-            <div style={{ background: "#0b1120", borderRadius: 14, border: "1px solid #1e293b", padding: "20px 24px" }}>
+            <div style={{ background: "#0b1120", borderRadius: 14, border: "1px solid #1e293b", padding: isMobile ? "14px 12px" : "20px 24px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em", color: "#64748b", fontWeight: 700 }}>
                   Projected Fair Price
@@ -549,15 +573,15 @@ export default function FairValueCalculator() {
             </div>
 
             {/* Year-by-year breakdown */}
-            <div style={{ background: "#0b1120", borderRadius: 14, border: "1px solid #1e293b", padding: "20px 24px", overflowX: "auto" }}>
+            <div style={{ background: "#0b1120", borderRadius: 14, border: "1px solid #1e293b", padding: isMobile ? "14px 12px" : "20px 24px", overflowX: "auto" }}>
               <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em", color: "#64748b", fontWeight: 700, marginBottom: 14 }}>
                 Year-by-Year Breakdown
               </div>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "'DM Mono', monospace", fontSize: 13 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "'DM Mono', monospace", fontSize: isMobile ? 11 : 13 }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid #1e293b" }}>
                     {["Year", "Projected EPS", "Fair Price", "Return if Bought Now"].map((h) => (
-                      <th key={h} style={{ textAlign: "left", padding: "8px 12px", color: "#475569", fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>{h}</th>
+                      <th key={h} style={{ textAlign: "left", padding: isMobile ? "6px 6px" : "8px 12px", color: "#475569", fontWeight: 600, fontSize: isMobile ? 9 : 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -568,10 +592,10 @@ export default function FairValueCalculator() {
                       : 0;
                     return (
                       <tr key={row.year} style={{ borderBottom: "1px solid #111827" }}>
-                        <td style={{ padding: "10px 12px", color: "#94a3b8" }}>Yr {row.year}</td>
-                        <td style={{ padding: "10px 12px", color: "#cbd5e1" }}>${row.projectedEps.toFixed(2)}</td>
-                        <td style={{ padding: "10px 12px", color: "#f1f5f9", fontWeight: 600 }}>{formatDollar(row.projectedPrice)}</td>
-                        <td style={{ padding: "10px 12px", color: returnFromNow >= desiredReturn ? "#10b981" : "#f59e0b", fontWeight: 500 }}>
+                        <td style={{ padding: isMobile ? "8px 6px" : "10px 12px", color: "#94a3b8" }}>Yr {row.year}</td>
+                        <td style={{ padding: isMobile ? "8px 6px" : "10px 12px", color: "#cbd5e1" }}>${row.projectedEps.toFixed(2)}</td>
+                        <td style={{ padding: isMobile ? "8px 6px" : "10px 12px", color: "#f1f5f9", fontWeight: 600 }}>{formatDollar(row.projectedPrice)}</td>
+                        <td style={{ padding: isMobile ? "8px 6px" : "10px 12px", color: returnFromNow >= desiredReturn ? "#10b981" : "#f59e0b", fontWeight: 500 }}>
                           {formatPct(returnFromNow)}/yr
                         </td>
                       </tr>
